@@ -6,6 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Keyri-Co/EZindexDB.git"
+  },
   "author": "Justin W. Wolcott",
   "license": "ISC"
 }
