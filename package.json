@@ -1,0 +1,11 @@
+{
+  "name": "ezindexdb",
+  "version": "1.0.0",
+  "description": "Easier way to work with indexDB for 90pct of use cases",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Justin W. Wolcott",
+  "license": "ISC"
+}
