@@ -10,7 +10,7 @@ class EZindexDB{
   // it outright.
   //
   // //////////////////////////////////////////////////////////////////////////
-  start = async (database, table) => {
+  start = async (database, table, indexes) => {
     return new Promise((resolve, reject) => {
 
       // start connection to DB, then, listen for events
@@ -24,7 +24,14 @@ class EZindexDB{
       // upgradeNeeded ???
       openRequest.onupgradeneeded = event => {
         this.#database = event.target.result;
-        this.#database.createObjectStore(table, {"keyPath": "id"});
+        const store = this.#database.createObjectStore(table, {"keyPath": "id"});
+        
+        // If we're taking indexes, let's create indexes
+        if(indexes){
+          indexes.forEach((index) => {
+            store.createIndex(index,index);
+          })
+        }
       };
 
       openRequest.onsuccess = event => {
@@ -231,21 +238,104 @@ class EZindexDB{
     }
   }
   
+  
+  
+  
+  
+  // //////////////////////////////////////////////////////////////////////////
+  //
+  // GET A RECORD OUT OF THE DATABASE - BY FIELD / VALUE COMBO...
+  //
+  // //////////////////////////////////////////////////////////////////////////
+  searches = async (table, field, value) => {
+    
+    // start a transaction
+    const store = await this.#transaction(table);
+    
+    // store whatever comes from our method here
+    let results;
+    
+    try{
+
+      // Set Reference to our Index
+      let ndx = store.index(field);
+      
+      results = await ndx.getAll(value);
+
+      await new Promise((s,j) => {
+      
+        // Handle when everything was successful
+        results.onsuccess = () => {
+          return s(true);
+        }
+
+        // Handle when things went poorly...
+        results.onerror = (e) => {
+          console.log({e});
+          throw new Error(results.error);
+          return j(false);
+        }
+      
+      });
+
+      // Return our success now that we're done
+      return results.result;
+
+    } catch(e){
+      // return our failure, now that we've failed
+      return results.error;
+    }
+
+  }
+  
 }
 
 /////////////////////////////////
 // DEMO:
 /////////////////////////////////
 
-/*
   let ez = new EZindexDB();
-  await ez.start("company","people");
+  await ez.start("company","people",["name"]);
 
-  await ez.creates("people",{"id": "1", "salary": 12});
-  await ez.creates("people",{"id": "2", "salary": 12});
-  await ez.creates("people",{"id": "3", "salary": 12});
+  await ez.creates("people",{"id": "1", "salary": 12, "name": "STEVE"});
+  await ez.creates("people",{"id": "2", "salary": 12, "name": "EDDY"});
+  await ez.creates("people",{"id": "3", "salary": 12, "name": "JOE"});
+  await ez.creates("people",{"id": "4", "salary": 13, "name": "JOE"});
 
+  let data = await ez.searches("people","name", "JOE");
+
+
+/*
+// Instantiate the DB
+  let ez = new EZindexDB();
+  
+//
+// List any of the fields we might want to search on
+// that aren't "id"
+//
+  await ez.start("company","people",["name"]);
+
+//
+// Demonstration of adding people to our DB
+//
+  await ez.creates("people",{"id": "1", "salary": 12, "name": "STEVE"});
+  await ez.creates("people",{"id": "2", "salary": 12, "name": "EDDY"});
+  await ez.creates("people",{"id": "3", "salary": 12, "name": "JOE"});
+  await ez.creates("people",{"id": "4", "salary": 13, "name": "JOE"});
+
+//
+// Find everybody named "JOE"
+//
+  let data = await ez.searches("people","name", "JOE");
+  
+//
+// Set Joe's Salary to 12_000
+//
   await ez.updates("people",{"id": "3", "salary": 12_000});
+  
+//
+// Make sure we can't 'upsert' a record
+//
   await ez.updates("people",{"id": "newb", "salary": 12_000});  // this one fails
 */
 
