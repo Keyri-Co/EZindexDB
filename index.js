@@ -294,17 +294,6 @@ class EZindexDB{
 // DEMO:
 /////////////////////////////////
 
-  let ez = new EZindexDB();
-  await ez.start("company","people",["name"]);
-
-  await ez.creates("people",{"id": "1", "salary": 12, "name": "STEVE"});
-  await ez.creates("people",{"id": "2", "salary": 12, "name": "EDDY"});
-  await ez.creates("people",{"id": "3", "salary": 12, "name": "JOE"});
-  await ez.creates("people",{"id": "4", "salary": 13, "name": "JOE"});
-
-  let data = await ez.searches("people","name", "JOE");
-
-
 /*
 // Instantiate the DB
   let ez = new EZindexDB();
