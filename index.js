@@ -1,4 +1,4 @@
-class EZindexDB{
+export default class EZindexDB{
   
   #database;
   #trans;

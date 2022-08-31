@@ -11,5 +11,6 @@
     "url": "git+https://github.com/Keyri-Co/EZindexDB.git"
   },
   "author": "Justin W. Wolcott",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "module"
 }
