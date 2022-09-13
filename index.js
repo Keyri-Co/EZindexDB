@@ -22,15 +22,13 @@ export default class EZindexDB{
       };
 
       // upgradeNeeded ???
-      openRequest.onupgradeneeded = event => {
+      openRequest.onupgradeneeded = async event => {
         this.#database = event.target.result;
         const store = this.#database.createObjectStore(table, {"keyPath": "id"});
         
         // If we're taking indexes, let's create indexes
         if(indexes){
-          indexes.forEach((index) => {
-            store.createIndex(index,index);
-          })
+          let tmp = await Promise.all(indexes.map((index) => {return store.createIndex(index,index)}));
         }
       };
 
@@ -82,7 +80,7 @@ export default class EZindexDB{
 
         // Handle when things went poorly...
         results.onerror = (e) => {
-          throw new Error(results.error);
+          throw new Error(e);
           return j(false);
         }
       
@@ -94,7 +92,7 @@ export default class EZindexDB{
 
     } catch(e){
       // return our failure, now that we've failed
-      return results.error;
+      return e;
     }
   }
   
@@ -125,7 +123,7 @@ export default class EZindexDB{
 
         // Handle when things went poorly...
         results.onerror = (e) => {
-          throw new Error(results.error);
+          throw new Error(e);
           return j(false);
         }
       
@@ -136,7 +134,7 @@ export default class EZindexDB{
 
     } catch(e){
       // return our failure, now that we've failed
-      return results.error;
+      return e;
     }
 
   }
@@ -177,7 +175,7 @@ export default class EZindexDB{
 
         // Handle when things went poorly...
         results.onerror = (e) => {
-          throw new Error(results.error);
+          throw new Error(e);
           return j(false);
         }
       
@@ -189,7 +187,7 @@ export default class EZindexDB{
 
     } catch(e){
       // return our failure, now that we've failed
-      return results.error;
+      return e;
     }
   }
   
@@ -222,7 +220,7 @@ export default class EZindexDB{
 
         // Handle when things went poorly...
         results.onerror = (e) => {
-          throw new Error(results.error);
+          throw new Error(e);
           return j(false);
         }
       
@@ -234,7 +232,7 @@ export default class EZindexDB{
 
     } catch(e){
       // return our failure, now that we've failed
-      return results.error;
+      return e;
     }
   }
   
@@ -272,7 +270,7 @@ export default class EZindexDB{
         // Handle when things went poorly...
         results.onerror = (e) => {
           console.log({e});
-          throw new Error(results.error);
+          throw new Error(e);
           return j(false);
         }
       
@@ -283,7 +281,7 @@ export default class EZindexDB{
 
     } catch(e){
       // return our failure, now that we've failed
-      return results.error;
+      return e;
     }
 
   }
