@@ -12,30 +12,31 @@ export default class EZindexDB{
   // //////////////////////////////////////////////////////////////////////////
   start = async (database, table, indexes) => {
     return new Promise((resolve, reject) => {
+      try{
+        // start connection to DB, then, listen for events
+        const openRequest = indexedDB.open(database, 1);
 
-      // start connection to DB, then, listen for events
-      const openRequest = indexedDB.open(database, 1);
+        // handle error
+        openRequest.onerror = event => {reject(event)};
 
-      // handle error
-      openRequest.onerror = event => {
-        console.log('error', event);
-      };
+        // upgradeNeeded ???
+        openRequest.onupgradeneeded = async event => {
+          this.#database = event.target.result;
+          const store = this.#database.createObjectStore(table, {"keyPath": "id"});
+          
+          // If we're taking indexes, let's create indexes
+          if(indexes){
+            let tmp = await Promise.all(indexes.map((index) => {return store.createIndex(index,index)}));
+          }
+        };
 
-      // upgradeNeeded ???
-      openRequest.onupgradeneeded = async event => {
-        this.#database = event.target.result;
-        const store = this.#database.createObjectStore(table, {"keyPath": "id"});
-        
-        // If we're taking indexes, let's create indexes
-        if(indexes){
-          let tmp = await Promise.all(indexes.map((index) => {return store.createIndex(index,index)}));
-        }
-      };
-
-      openRequest.onsuccess = event => {
-        this.#database = event.target.result;
-        resolve(true);
-      };
+        openRequest.onsuccess = event => {
+          this.#database = event.target.result;
+          resolve(true);
+        };
+      } catch(err){
+        reject(err);
+      }
     });
   }
   // //////////////////////////////////////////////////////////////////////////
