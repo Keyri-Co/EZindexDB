@@ -165,7 +165,7 @@ export default class EZindexDB{
     try{
 
       // Try getting some information out of the database
-      results = await store.put(data);
+      results = await store.put({...test_data, ...data});
 
       await new Promise((s,j) => {
       

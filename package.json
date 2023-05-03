@@ -12,5 +12,6 @@
   },
   "author": "Justin W. Wolcott",
   "license": "ISC",
-  "type": "module"
+  "type": "module",
+  "types": "index.d.ts"
 }
