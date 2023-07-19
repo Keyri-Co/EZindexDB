@@ -1,8 +1,6 @@
 export default class EZindexDB{
   
   #database;
-  #trans;
-
   
   // //////////////////////////////////////////////////////////////////////////
   //
@@ -10,35 +8,34 @@ export default class EZindexDB{
   // it outright.
   //
   // //////////////////////////////////////////////////////////////////////////
-  start = async (database, table, indexes) => {
+  start = (database, table, indexes) => {
     return new Promise((resolve, reject) => {
-      try{
-        // start connection to DB, then, listen for events
-        const openRequest = indexedDB.open(database, 1);
-
-        // handle error
-        openRequest.onerror = event => {reject(event)};
-
-        // upgradeNeeded ???
-        openRequest.onupgradeneeded = async event => {
-          this.#database = event.target.result;
-          const store = this.#database.createObjectStore(table, {"keyPath": "id"});
-          
-          // If we're taking indexes, let's create indexes
-          if(indexes){
-            let tmp = await Promise.all(indexes.map((index) => {return store.createIndex(index,index)}));
-          }
-        };
-
-        openRequest.onsuccess = event => {
-          this.#database = event.target.result;
-          resolve(true);
-        };
-      } catch(err){
-        reject(err);
-      }
+      // start connection to DB, then, listen for events
+      const openRequest = indexedDB.open(database, 1);
+  
+      // handle error
+      openRequest.onerror = event => {
+        reject(event.target.error);
+      };
+  
+      // upgradeNeeded ???
+      openRequest.onupgradeneeded = event => {
+        this._database = event.target.result;
+        const store = this._database.createObjectStore(table, {"keyPath": "id"});
+        
+        // If we're taking indexes, let's create indexes
+        if(indexes){
+          indexes.forEach((index) => store.createIndex(index,index));
+        }
+      };
+  
+      openRequest.onsuccess = event => {
+        this._database = event.target.result;
+        resolve(true);
+      };
     });
   }
+  
   // //////////////////////////////////////////////////////////////////////////
   //
   // Create a transaction that we can use internally
@@ -51,94 +48,68 @@ export default class EZindexDB{
   }
   
   
-
-
   // //////////////////////////////////////////////////////////////////////////
   //
   // Add a record to the database if it doesn't exist
   // THROW AN ERROR IF THE RECORD DOES EXIST
   //
   // //////////////////////////////////////////////////////////////////////////
-  creates = async (table, data) => {
-    
-    // start a transaction
-    const store = await this.#transaction(table);
-    
-    // store whatever comes from our method here
-    let results;
-    
-    try{
-
-      // Try getting some information out of the database
-      results = await store.add(data);
-
-      await new Promise((s,j) => {
-      
-        // Handle when everything was successful
-        results.onsuccess = () => {
-          return s(true);
-        }
-
-        // Handle when things went poorly...
-        results.onerror = (e) => {
-          throw new Error(e);
-          return j(false);
-        }
-      
-      });
-      
-
-      // Return our success now that we're done
-      return results.result;
-
-    } catch(e){
-      // return our failure, now that we've failed
-      return e;
-    }
+  creates = (table, data) => {
+    return new Promise((resolve, reject) => {
+      // start a transaction
+      const transaction = this._database.transaction(table, 'readwrite');
+      const store = transaction.objectStore(table);
+  
+      // Try adding data to the store
+      const request = store.add(data);
+  
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+  
+      request.onerror = (event) => {
+        console.error("Error adding data to IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+  
+      // Handle transaction errors
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
   }
+  
   
   // //////////////////////////////////////////////////////////////////////////
   //
   // GET A RECORD OUT OF THE DATABASE
   //
   // //////////////////////////////////////////////////////////////////////////
-  reads = async (table, id) => {
-    
-    // start a transaction
-    const store = await this.#transaction(table);
-    
-    // store whatever comes from our method here
-    let results;
-    
-    try{
-
+  reads = (table, id) => {
+    return new Promise((resolve, reject) => {
+      // start a transaction
+      const transaction = this._database.transaction(table, 'readonly');
+      const store = transaction.objectStore(table);
+      
       // Try getting some information out of the database
-      results = await store.get(id);
-
-      await new Promise((s,j) => {
+      const request = store.get(id);
       
-        // Handle when everything was successful
-        results.onsuccess = () => {
-          return s(true);
-        }
-
-        // Handle when things went poorly...
-        results.onerror = (e) => {
-          throw new Error(e);
-          return j(false);
-        }
-      
-      });
-
-      // Return our success now that we're done
-      return results.result;
-
-    } catch(e){
-      // return our failure, now that we've failed
-      return e;
-    }
-
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+  
+      request.onerror = (event) => {
+        console.error("Error reading data from IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+  
+      // Handle transaction errors
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
   }
+  
   
   // //////////////////////////////////////////////////////////////////////////
   //
@@ -146,51 +117,39 @@ export default class EZindexDB{
   // THROW AN ERROR IF THE RECORD DOES EXIST
   //
   // //////////////////////////////////////////////////////////////////////////
-  updates = async (table, data) => {
-    
-    // see if the thing exists first.
-    // if not, fail it
-    let test_data = await this.reads(table, data.id);
-    
-    if(!test_data){
-      throw new Error("A record must exist before you can update it");
-    }
-    
-    // start a transaction
-    const store = await this.#transaction(table);
-    
-    // store whatever comes from our method here
-    let results;
-    
-    try{
-
-      // Try getting some information out of the database
-      results = await store.put({...test_data, ...data});
-
-      await new Promise((s,j) => {
+  updates = (table, data) => {
+    return new Promise(async (resolve, reject) => {
+      // see if the thing exists first.
+      // if not, fail it
+      let test_data = await this.reads(table, data.id);
       
-        // Handle when everything was successful
-        results.onsuccess = () => {
-          return s(true);
-        }
-
-        // Handle when things went poorly...
-        results.onerror = (e) => {
-          throw new Error(e);
-          return j(false);
-        }
+      if(!test_data){
+        reject(new Error("A record must exist before you can update it"));
+      }
+  
+      // start a transaction
+      const transaction = this._database.transaction(table, 'readwrite');
+      const store = transaction.objectStore(table);
       
-      });
+      // Try updating data in the store
+      const request = store.put({...test_data, ...data});
       
-
-      // Return our success now that we're done
-      return results.result;
-
-    } catch(e){
-      // return our failure, now that we've failed
-      return e;
-    }
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+  
+      request.onerror = (event) => {
+        console.error("Error updating data in IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+  
+      // Handle transaction errors
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
   }
+  
   
   // //////////////////////////////////////////////////////////////////////////
   //
@@ -198,94 +157,65 @@ export default class EZindexDB{
   // THROW AN ERROR IF THE RECORD DOES EXIST
   //
   // //////////////////////////////////////////////////////////////////////////
-  deletes = async (table, id) => {
-    
-    
-    // start a transaction
-    const store = await this.#transaction(table);
-    
-    // store whatever comes from our method here
-    let results;
-    
-    try{
-
-      // Try getting some information out of the database
-      results = await store.delete(id);
-
-      await new Promise((s,j) => {
+  deletes = (table, id) => {
+    return new Promise((resolve, reject) => {
+      // start a transaction
+      const transaction = this._database.transaction(table, 'readwrite');
+      const store = transaction.objectStore(table);
       
-        // Handle when everything was successful
-        results.onsuccess = () => {
-          return s(true);
-        }
-
-        // Handle when things went poorly...
-        results.onerror = (e) => {
-          throw new Error(e);
-          return j(false);
-        }
+      // Try deleting the record from the store
+      const request = store.delete(id);
       
-      });
-      
-
-      // Return our success now that we're done
-      return results.result;
-
-    } catch(e){
-      // return our failure, now that we've failed
-      return e;
-    }
+      request.onsuccess = () => {
+        resolve(true);
+      };
+  
+      request.onerror = (event) => {
+        console.error("Error deleting record from IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+  
+      // Handle transaction errors
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
   }
-  
-  
-  
-  
   
   // //////////////////////////////////////////////////////////////////////////
   //
   // GET A RECORD OUT OF THE DATABASE - BY FIELD / VALUE COMBO...
   //
   // //////////////////////////////////////////////////////////////////////////
-  searches = async (table, field, value) => {
-    
-    // start a transaction
-    const store = await this.#transaction(table);
-    
-    // store whatever comes from our method here
-    let results;
-    
-    try{
-
+  searches = (table, field, value) => {
+    return new Promise((resolve, reject) => {
+      // start a transaction
+      const transaction = this._database.transaction(table, 'readonly');
+      const store = transaction.objectStore(table);
+      
       // Set Reference to our Index
       let ndx = store.index(field);
       
-      results = await ndx.getAll(value);
-
-      await new Promise((s,j) => {
+      // Try getting some information out of the database
+      const request = ndx.getAll(value);
       
-        // Handle when everything was successful
-        results.onsuccess = () => {
-          return s(true);
-        }
-
-        // Handle when things went poorly...
-        results.onerror = (e) => {
-          console.log({e});
-          throw new Error(e);
-          return j(false);
-        }
+      request.onsuccess = () => {
+        // The result of the request will be in request.result
+        resolve(request.result);
+      };
+  
+      request.onerror = (event) => {
+        console.error("Error reading from IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
       
-      });
-
-      // Return our success now that we're done
-      return results.result;
-
-    } catch(e){
-      // return our failure, now that we've failed
-      return e;
-    }
-
+      // Handle transaction errors
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
   }
+  
   
 }
 
