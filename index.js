@@ -1,13 +1,18 @@
+/**
+ * A class to simplify interactions with IndexedDB.
+ */
 export default class EZindexDB{
   
   #database;
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // Instantiate a connection to the database, if not just create
-  // it outright.
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Initializes a connection to the database or creates it if it doesn't exist.
+   * 
+   * @param {string} database - The name of the database.
+   * @param {string} table - The name of the table (object store).
+   * @param {Array<string>} [indexes] - An array of index names to be created.
+   * @returns {Promise<boolean>} Resolves to true if successful.
+   */
   start = (database, table, indexes) => {
     return new Promise((resolve, reject) => {
       // start connection to DB, then, listen for events
@@ -36,11 +41,13 @@ export default class EZindexDB{
     });
   }
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // Create a transaction that we can use internally
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Creates a transaction for internal use.
+   * 
+   * @private
+   * @param {string} table - The name of the table (object store).
+   * @returns {IDBObjectStore} The object store for the specified table.
+   */
   #transaction = async(table) => {
     const transaction = await this.#database.transaction(table, 'readwrite');
     const store = transaction.objectStore(table);
@@ -48,12 +55,14 @@ export default class EZindexDB{
   }
   
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // Add a record to the database if it doesn't exist
-  // THROW AN ERROR IF THE RECORD DOES EXIST
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Adds a record to the database if it doesn't exist.
+   * Throws an error if the record already exists.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {Object} data - The data to be added.
+   * @returns {Promise<IDBValidKey>} Resolves to the key of the added record.
+   */
   creates = (table, data) => {
     return new Promise((resolve, reject) => {
       // start a transaction
@@ -80,11 +89,13 @@ export default class EZindexDB{
   }
   
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // GET A RECORD OUT OF THE DATABASE
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Retrieves a record from the database by its ID.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {IDBValidKey} id - The ID of the record to retrieve.
+   * @returns {Promise<Object>} Resolves to the retrieved record.
+   */
   reads = (table, id) => {
     return new Promise((resolve, reject) => {
       // start a transaction
@@ -111,12 +122,14 @@ export default class EZindexDB{
   }
   
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // UPDATE A RECORD IN THE DATABASE IF IT DOES EXIST
-  // THROW AN ERROR IF THE RECORD DOES EXIST
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Updates an existing record in the database.
+   * Throws an error if the record doesn't exist.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {Object} data - The data to update.
+   * @returns {Promise<IDBValidKey>} Resolves to the key of the updated record.
+   */
   updates = (table, data) => {
     return new Promise(async (resolve, reject) => {
       // see if the thing exists first.
@@ -150,12 +163,13 @@ export default class EZindexDB{
     });
   }
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // UPDATE A RECORD IN THE DATABASE IF IT DOES EXIST
-  // THROW AN ERROR IF THE RECORD DOES EXIST
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Inserts or updates a record in the database.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {Object} data - The data to insert or update.
+   * @returns {Promise<IDBValidKey>} Resolves to the key of the inserted or updated record.
+   */
   upserts = (table, data) => {
     return new Promise(async (resolve, reject) => {
       // see if the thing exists first.
@@ -191,12 +205,13 @@ export default class EZindexDB{
     });
   }
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // UPDATE A RECORD IN THE DATABASE IF IT DOES EXIST
-  // THROW AN ERROR IF THE RECORD DOES EXIST
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Deletes a record from the database by its ID.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {IDBValidKey} id - The ID of the record to delete.
+   * @returns {Promise<boolean>} Resolves to true if the deletion was successful.
+   */
   deletes = (table, id) => {
     return new Promise((resolve, reject) => {
       // start a transaction
@@ -222,11 +237,14 @@ export default class EZindexDB{
     });
   }
   
-  // //////////////////////////////////////////////////////////////////////////
-  //
-  // GET A RECORD OUT OF THE DATABASE - BY FIELD / VALUE COMBO...
-  //
-  // //////////////////////////////////////////////////////////////////////////
+  /**
+   * Searches for records in the database by a specified field and value.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {string} field - The name of the field to search by.
+   * @param {any} value - The value to search for.
+   * @returns {Promise<Array<Object>>} Resolves to an array of matching records.
+   */
   searches = (table, field, value) => {
     return new Promise((resolve, reject) => {
       // start a transaction
