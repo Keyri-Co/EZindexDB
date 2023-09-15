@@ -20,8 +20,8 @@ export default class EZindexDB{
   
       // upgradeNeeded ???
       openRequest.onupgradeneeded = event => {
-        this._database = event.target.result;
-        const store = this._database.createObjectStore(table, {"keyPath": "id"});
+        this.#database = event.target.result;
+        const store = this.#database.createObjectStore(table, {"keyPath": "id"});
         
         // If we're taking indexes, let's create indexes
         if(indexes){
@@ -30,7 +30,7 @@ export default class EZindexDB{
       };
   
       openRequest.onsuccess = event => {
-        this._database = event.target.result;
+        this.#database = event.target.result;
         resolve(true);
       };
     });
@@ -57,7 +57,7 @@ export default class EZindexDB{
   creates = (table, data) => {
     return new Promise((resolve, reject) => {
       // start a transaction
-      const transaction = this._database.transaction(table, 'readwrite');
+      const transaction = this.#database.transaction(table, 'readwrite');
       const store = transaction.objectStore(table);
   
       // Try adding data to the store
@@ -88,7 +88,7 @@ export default class EZindexDB{
   reads = (table, id) => {
     return new Promise((resolve, reject) => {
       // start a transaction
-      const transaction = this._database.transaction(table, 'readonly');
+      const transaction = this.#database.transaction(table, 'readonly');
       const store = transaction.objectStore(table);
       
       // Try getting some information out of the database
@@ -128,7 +128,7 @@ export default class EZindexDB{
       }
   
       // start a transaction
-      const transaction = this._database.transaction(table, 'readwrite');
+      const transaction = this.#database.transaction(table, 'readwrite');
       const store = transaction.objectStore(table);
       
       // Try updating data in the store
@@ -150,6 +150,46 @@ export default class EZindexDB{
     });
   }
   
+  // //////////////////////////////////////////////////////////////////////////
+  //
+  // UPDATE A RECORD IN THE DATABASE IF IT DOES EXIST
+  // THROW AN ERROR IF THE RECORD DOES EXIST
+  //
+  // //////////////////////////////////////////////////////////////////////////
+  upserts = (table, data) => {
+    return new Promise(async (resolve, reject) => {
+      // see if the thing exists first.
+      // if not, fail it
+      let test_data = await this.reads(table, data.id);
+  
+      // start a transaction
+      const transaction = this.#database.transaction(table, 'readwrite');
+      const store = transaction.objectStore(table);
+      let request;
+
+      // Try updating data in the store
+      if(test_data){
+        request = store.put({...test_data, ...data});
+      } else {
+        request = store.add(data);
+      }
+ 
+      
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+  
+      request.onerror = (event) => {
+        console.error("Error updating data in IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+  
+      // Handle transaction errors
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
+  }
   
   // //////////////////////////////////////////////////////////////////////////
   //
@@ -160,7 +200,7 @@ export default class EZindexDB{
   deletes = (table, id) => {
     return new Promise((resolve, reject) => {
       // start a transaction
-      const transaction = this._database.transaction(table, 'readwrite');
+      const transaction = this.#database.transaction(table, 'readwrite');
       const store = transaction.objectStore(table);
       
       // Try deleting the record from the store
@@ -190,7 +230,7 @@ export default class EZindexDB{
   searches = (table, field, value) => {
     return new Promise((resolve, reject) => {
       // start a transaction
-      const transaction = this._database.transaction(table, 'readonly');
+      const transaction = this.#database.transaction(table, 'readonly');
       const store = transaction.objectStore(table);
       
       // Set Reference to our Index
