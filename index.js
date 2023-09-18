@@ -1,7 +1,7 @@
 /**
  * A class to simplify interactions with IndexedDB.
  */
-export default class EZindexDB{
+class EZindexDB{
   
   #database;
   
@@ -315,3 +315,133 @@ export default class EZindexDB{
   await ez.updates("people",{"id": "newb", "salary": 12_000});  // this one fails
 */
 
+
+
+/**
+ * A class to simulate interactions with IndexedDB using in-memory storage.
+ */
+export default class SynthEzIndexDB {
+  /**
+   * In-memory storage object.
+   * @type {Object}
+   * @private
+   */
+  #inMemoryStorage = {};
+
+  /**
+   * Initializes a connection to the in-memory database or creates it if it doesn't exist.
+   * 
+   * @param {string} database - The name of the database.
+   * @param {string} table - The name of the table (object store).
+   * @param {Array<string>} [indexes] - An array of index names to be created (ignored in this implementation).
+   * @returns {Promise<boolean>} Resolves to true if successful.
+   */
+  start = async (database, table, indexes) => {
+    if (!this.#inMemoryStorage[database]) {
+      this.#inMemoryStorage[database] = {};
+    }
+    if (!this.#inMemoryStorage[database][table]) {
+      this.#inMemoryStorage[database][table] = {};
+    }
+    return true;
+  };
+
+  /**
+   * Adds a record to the in-memory database if it doesn't exist.
+   * Throws an error if the record already exists.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {Object} data - The data to be added.
+   * @returns {Promise<string>} Resolves to the key of the added record.
+   */
+  creates = async (table, data) => {
+    const db = this.#inMemoryStorage;
+    if (!db[table]) {
+      db[table] = {};
+    }
+    if (db[table][data.id]) {
+      throw new Error("Record already exists");
+    }
+    db[table][data.id] = data;
+    return data.id;
+  };
+
+  /**
+   * Retrieves a record from the in-memory database by its ID.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {string} id - The ID of the record to retrieve.
+   * @returns {Promise<Object>} Resolves to the retrieved record.
+   */
+  reads = async (table, id) => {
+    const db = this.#inMemoryStorage;
+    return db[table] ? db[table][id] : undefined;
+  };
+
+  /**
+   * Updates an existing record in the in-memory database.
+   * Throws an error if the record doesn't exist.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {Object} data - The data to update.
+   * @returns {Promise<string>} Resolves to the key of the updated record.
+   */
+  updates = async (table, data) => {
+    const db = this.#inMemoryStorage;
+    if (!db[table] || !db[table][data.id]) {
+      throw new Error("A record must exist before you can update it");
+    }
+    db[table][data.id] = { ...db[table][data.id], ...data };
+    return data.id;
+  };
+
+  /**
+   * Inserts or updates a record in the in-memory database.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {Object} data - The data to insert or update.
+   * @returns {Promise<string>} Resolves to the key of the inserted or updated record.
+   */
+  upserts = async (table, data) => {
+    const db = this.#inMemoryStorage;
+    if (!db[table]) {
+      db[table] = {};
+    }
+    db[table][data.id] = { ...db[table][data.id], ...data };
+    return data.id;
+  };
+
+  /**
+   * Deletes a record from the in-memory database by its ID.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {string} id - The ID of the record to delete.
+   * @returns {Promise<boolean>} Resolves to true if the deletion was successful.
+   */
+  deletes = async (table, id) => {
+    const db = this.#inMemoryStorage;
+    if (!db[table] || !db[table][id]) {
+      throw new Error("Record not found");
+    }
+    delete db[table][id];
+    return true;
+  };
+
+  /**
+   * Searches for records in the in-memory database by a specified field and value.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @param {string} field - The name of the field to search by.
+   * @param {any} value - The value to search for.
+   * @returns {Promise<Array<Object>>} Resolves to an array of matching records.
+   */
+  searches = async (table, field, value) => {
+    const db = this.#inMemoryStorage;
+    if (!db[table]) {
+      return [];
+    }
+    return Object.values(db[table]).filter(record => record[field] === value);
+  };
+}
+
+export {EZindexDB, SynthEzIndexDB}
