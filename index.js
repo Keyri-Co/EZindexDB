@@ -272,8 +272,71 @@ class EZindexDB{
         console.error("Transaction error:", event.target.error);
       };
     });
+
   }
-  
+
+    
+  /**
+   * Retrieves all records from a table.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @returns {Promise<Array<Object>>} Resolves to an array of all records.
+   */
+  getAll = (table) => {
+    return new Promise((resolve, reject) => {
+      const transaction = this.#database.transaction(table, 'readonly');
+      const store = transaction.objectStore(table);
+      const request = store.openCursor();
+      const allRecords = [];
+
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          allRecords.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(allRecords);
+        }
+      };
+
+      request.onerror = (event) => {
+        console.error("Error retrieving all records from IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
+  }
+
+  /**
+   * Counts the number of records in a table.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @returns {Promise<number>} Resolves to the count of records.
+   */
+  countRecords = (table) => {
+    return new Promise((resolve, reject) => {
+      const transaction = this.#database.transaction(table, 'readonly');
+      const store = transaction.objectStore(table);
+      const request = store.count();
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+
+      request.onerror = (event) => {
+        console.error("Error counting records in IndexedDB:", event.target.error);
+        reject(event.target.error);
+      };
+
+      transaction.onerror = (event) => {
+        console.error("Transaction error:", event.target.error);
+      };
+    });
+  }
+
   
 }
 
@@ -442,6 +505,30 @@ export default class SynthEzIndexDB {
     }
     return Object.values(db[table]).filter(record => record[field] === value);
   };
+
+
+  /**
+   * Retrieves all records from a table in the in-memory database.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @returns {Promise<Array<Object>>} Resolves to an array of all records.
+   */
+  getAll = async (table) => {
+    const db = this.#inMemoryStorage;
+    return db[table] ? Object.values(db[table]) : [];
+  }
+
+  /**
+   * Counts the number of records in a table in the in-memory database.
+   * 
+   * @param {string} table - The name of the table (object store).
+   * @returns {Promise<number>} Resolves to the count of records.
+   */
+  countRecords = async (table) => {
+    const db = this.#inMemoryStorage;
+    return db[table] ? Object.keys(db[table]).length : 0;
+  }
+
 }
 
 export {EZindexDB, SynthEzIndexDB}

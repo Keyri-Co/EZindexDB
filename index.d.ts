@@ -65,6 +65,24 @@ export class EZindexDB {
    * @returns Resolves to an array of matching records.
    */
   searches(table: string, field: string, value: any): Promise<object[]>;
+
+
+
+  /**
+   * Retrieves all records from a table.
+   * 
+   * @param table - The name of the table (object store).
+   * @returns Resolves to an array of all records.
+   */
+  getAll(table: string): Promise<object[]>;
+
+  /**
+   * Counts the number of records in a table.
+   * 
+   * @param table - The name of the table (object store).
+   * @returns Resolves to the count of records.
+   */
+  countRecords(table: string): Promise<number>;
 }
 
 export class SynthEzIndexDB extends EZindexDB {}
