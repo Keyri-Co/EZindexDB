@@ -1,6 +1,6 @@
 {
   "name": "ezindexdb",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Easier way to work with indexDB for 90pct of use cases",
   "main": "index.js",
   "scripts": {
